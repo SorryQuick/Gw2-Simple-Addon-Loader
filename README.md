@@ -17,3 +17,6 @@ The format of the file is simply one absolute path OR relative path per line.
 If you use WINE, you need to use the wine path (eg. V:/home/user....) or the relative path.
 
 To make use of this launcher, simply replace your steam/lutris path that usually points to Gw2-64.exe and make it point to this launcher instead.
+
+# Compiling
+```cargo +nightly build --release```
