@@ -5,6 +5,7 @@ use dll_syringe::{
     Syringe,
 };
 use std::{
+    env,
     fs::{read_to_string, File},
     io::{BufRead, BufReader, Read, Write},
     os::windows::process::CommandExt,
@@ -15,10 +16,24 @@ use std::{
 };
 
 fn main() {
-    let mut f = File::create("log.txt").unwrap();
-    log(&mut f, "Launching gw2...");
+    // Path to Gw2SimpleAddonLoader binary directory
+    let binary_path = PathBuf::from(env::current_exe().unwrap().parent().unwrap());
+    // Path to the log file
+    let mut log_path = binary_path.clone();
+    log_path.push("log.txt");
+    // Create the log file
+    let mut f = File::create(log_path.to_str().unwrap()).unwrap();
+    log(&mut f, &format!("Running from addon directory: \"{}\"", binary_path.to_str().unwrap()));
 
-    let mut gw2_child = Command::new("../../Gw2-64.exe")
+    // Guild Wars 2 binary should be 2 directories up
+    let mut gw2_path = binary_path.clone();
+    gw2_path.pop();
+    gw2_path.pop();
+    gw2_path.push("Gw2-64.exe");
+    log(&mut f, &format!("Looking for Gw2-64.exe on path: \"{}\"", gw2_path.to_str().unwrap()));
+
+    log(&mut f, "Launching Guild Wars 2...");
+    let mut gw2_child = Command::new(gw2_path.to_str().unwrap())
         .args(&[
             "-provider",
             "Portal",
@@ -29,10 +44,18 @@ fn main() {
         .spawn()
         .unwrap();
 
+    // Get the dlls and exes from the addon directory
+    let dlls = get_dlls(&mut f,&binary_path);
+    let exes = get_exes(&mut f,&binary_path);
+
+    // Log the dlls and exes
+    log(&mut f, &format!("Found {} dlls and {} exes", dlls.len(), exes.len()));
+
     log(&mut f, "Finding game process...");
     let process = OwnedProcess::find_first_by_name("Gw2-64").unwrap();
 
-    log(&mut f, "Waiting for user to launch the game...");
+
+    log(&mut f, "Waiting for game to be fully running...");
     //Quick and easy way to wait until the user has launched the game.
     if process
         .wait_for_module_by_name(
@@ -51,8 +74,6 @@ fn main() {
 
     let syringe = Syringe::for_process(process);
 
-    let dlls = get_dlls(&mut f);
-    let exes = get_exes(&mut f);
 
     for dll in dlls {
         if dll.as_os_str().len() > 3 {
@@ -111,9 +132,11 @@ fn run_exe(path: PathBuf, f: &mut File) {
     }
 }
 
-fn get_dlls(f: &mut File) -> Vec<PathBuf> {
-    if let Ok(contents) = read_to_string("dlls.txt") {
-        log(f, "Read dlls.");
+fn get_dlls(f: &mut File, binary_path: &PathBuf) -> Vec<PathBuf> {
+    let mut dlls_path = binary_path.clone();
+    dlls_path.push("dlls.txt");
+    log(f, &format!("Trying to read dlls from {}", dlls_path.to_str().unwrap()));
+    if let Ok(contents) = read_to_string(dlls_path) {
         return contents
             .split(|b| b == '\n')
             .map(|line| PathBuf::from(line))
@@ -121,9 +144,11 @@ fn get_dlls(f: &mut File) -> Vec<PathBuf> {
     }
     Vec::new()
 }
-fn get_exes(f: &mut File) -> Vec<PathBuf> {
-    if let Ok(contents) = read_to_string("exes.txt") {
-        log(f, "Read exes.");
+fn get_exes(f: &mut File, binary_path: &PathBuf) -> Vec<PathBuf> {
+    let mut exes_path = binary_path.clone();
+    exes_path.push("exes.txt");
+    log(f, &format!("Trying to read exes from {}", exes_path.to_str().unwrap()));
+    if let Ok(contents) = read_to_string(exes_path) {
         return contents
             .split(|b| b == '\n')
             .map(|line| PathBuf::from(line))
