@@ -9,7 +9,7 @@ use std::{
     io::{BufRead, BufReader, Read, Write},
     os::windows::process::CommandExt,
     path::PathBuf,
-    process::{Command, Stdio},
+    process::{Child, Command, Stdio},
     thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -34,18 +34,17 @@ fn main() {
 
     log(&mut f, "Waiting for user to launch the game...");
     //Quick and easy way to wait until the user has launched the game.
-    if process
+    process
         .wait_for_module_by_name(
             "D3DCOMPILER_47.dll",
             Duration::from_millis(u64::max_value()),
         )
-        .is_err()
-    {
-        println!("Could not find D3DCOMPILER_47.");
-        return;
-    }
+        .ok();
+
     //Just to make sure
     std::thread::sleep(Duration::from_secs(3));
+
+    //std::thread::sleep(Duration::from_secs(30));
 
     log(&mut f, "Game has been launched.");
 
@@ -60,16 +59,24 @@ fn main() {
         }
     }
 
+    let mut children = Vec::with_capacity(exes.len());
+
     for exe in exes {
         if exe.as_os_str().len() > 3 {
             let mut f_cloned = f.try_clone().unwrap();
-            thread::spawn(move || {
-                run_exe(exe, &mut f_cloned.try_clone().unwrap());
-            });
+            children.push(run_exe(exe, &mut f_cloned.try_clone().unwrap()));
         }
     }
 
     gw2_child.wait();
+
+    //Game is closed, gotta kill every exe launched to close the wine prefix/instance cleanly
+    //For example, Blish like to stick around if not killed.
+    for child in children {
+        if let Some(mut child) = child {
+            child.kill().ok();
+        }
+    }
 }
 
 fn inject_dll(syringe: &Syringe, path: PathBuf, f: &mut File) {
@@ -89,24 +96,26 @@ fn inject_dll(syringe: &Syringe, path: PathBuf, f: &mut File) {
     }
 }
 
-fn run_exe(path: PathBuf, f: &mut File) {
+fn run_exe(path: PathBuf, f: &mut File) -> Option<Child> {
     match Command::new(&path)
         .creation_flags(0x08000000)
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .output()
+        .spawn()
     {
         Ok(mut child) => {
             log(
                 f,
                 &format!("Successfully launched {}", path.to_str().unwrap()),
             );
+            Some(child)
         }
         Err(e) => {
             log(
                 f,
                 &format!("Failed to launch {}: {}", path.to_str().unwrap(), e),
             );
+            None
         }
     }
 }
