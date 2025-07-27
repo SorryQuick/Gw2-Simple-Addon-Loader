@@ -8,7 +8,7 @@ use std::{
     fs::{read_to_string, File},
     io::{BufRead, BufReader, Read, Write},
     os::windows::process::CommandExt,
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{Child, Command, Stdio},
     thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
@@ -35,16 +35,11 @@ fn main() {
     log(&mut f, "Waiting for user to launch the game...");
     //Quick and easy way to wait until the user has launched the game.
     process
-        .wait_for_module_by_name(
-            "D3DCOMPILER_47.dll",
-            Duration::from_millis(u64::max_value()),
-        )
+        .wait_for_module_by_name("d3d11.dll", Duration::from_millis(u64::max_value()))
         .ok();
 
     //Just to make sure
     std::thread::sleep(Duration::from_secs(3));
-
-    //std::thread::sleep(Duration::from_secs(30));
 
     log(&mut f, "Game has been launched.");
 
@@ -104,10 +99,7 @@ fn run_exe(path: PathBuf, f: &mut File) -> Option<Child> {
         .spawn()
     {
         Ok(mut child) => {
-            log(
-                f,
-                &format!("Successfully launched {}", path.to_str().unwrap()),
-            );
+            log(f, &format!("Launched {}", path.to_str().unwrap()));
             Some(child)
         }
         Err(e) => {
