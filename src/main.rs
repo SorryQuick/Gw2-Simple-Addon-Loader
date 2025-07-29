@@ -43,17 +43,37 @@ fn main() {
         ),
     );
 
+    for arg in env::args().skip(1).collect::<Vec<String>>() {
+        log(&mut f, &arg);
+    }
+
     log(&mut f, "Launching Guild Wars 2...");
-    let mut gw2_child = Command::new("../../Gw2-64.exe")
-        .args(&[
-            "-provider",
-            "Portal",
-            "-ignorecoherentgpucrash",
-            "-autologin",
-        ])
-        .creation_flags(0x08000000)
-        .spawn()
-        .unwrap();
+    let mut gw2_child = if env::var("USE_STEAM_LOGIN").unwrap_or("0".into()) == "1" {
+        log(&mut f, "Game is running with Steam.");
+        let app_id = "1284210";
+        Command::new("../../Gw2-64.exe")
+            .env("SteamAppId", app_id)
+            .env("SteamGameId", app_id)
+            .args(&[
+                "-provider",
+                "Steam",
+                "-ignorecoherentgpucrash",
+                "-autologin",
+            ])
+            .spawn()
+            .unwrap()
+    } else {
+        log(&mut f, "Game is NOT running with Steam.");
+        Command::new("../../Gw2-64.exe")
+            .args(&[
+                "-provider",
+                "Portal",
+                "-ignorecoherentgpucrash",
+                "-autologin",
+            ])
+            .spawn()
+            .unwrap()
+    };
 
     let dlls = get_dlls(&mut f, &binary_path);
     let exes = get_exes(&mut f, &binary_path);
