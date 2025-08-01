@@ -51,7 +51,7 @@ fn main() {
     let mut gw2_child = if env::var("USE_STEAM_LOGIN").unwrap_or("0".into()) == "1" {
         log(&mut f, "Game is running with Steam.");
         let app_id = "1284210";
-        Command::new("../../Gw2-64.exe")
+        Command::new(gw2_path.to_str().unwrap())
             .env("SteamAppId", app_id)
             .env("SteamGameId", app_id)
             .args(&[
@@ -64,7 +64,7 @@ fn main() {
             .unwrap()
     } else {
         log(&mut f, "Game is NOT running with Steam.");
-        Command::new("../../Gw2-64.exe")
+        Command::new(gw2_path.to_str().unwrap())
             .args(&[
                 "-provider",
                 "Portal",
