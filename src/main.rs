@@ -173,6 +173,7 @@ fn get_dlls(f: &mut File, binary_path: &PathBuf) -> Vec<PathBuf> {
     if let Ok(contents) = read_to_string(dlls_path) {
         return contents
             .split(|b| b == '\n')
+            .filter(|s| !s.trim().is_empty())
             .map(|line| PathBuf::from(line))
             .collect::<Vec<PathBuf>>();
     }
@@ -189,6 +190,7 @@ fn get_exes(f: &mut File, binary_path: &PathBuf) -> Vec<PathBuf> {
     if let Ok(contents) = read_to_string(exes_path) {
         return contents
             .split(|b| b == '\n')
+            .filter(|s| !s.trim().is_empty())
             .map(|line| PathBuf::from(line))
             .collect::<Vec<PathBuf>>();
     }
