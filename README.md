@@ -4,10 +4,10 @@ Also works as a workaround to have multiple programs running in a single steam c
 
 # How to Use
 
-This expects this exe to be in <\Gw2 path containing Gw2-64.exe>/addons/<\subfolder name of your choice>/
+This expects this exe to be in <\Gw2 path containing Gw2-64.exe>/addons/LOADER_public/
 
 Example path: 
-~/.steam/steam/steamapps/common/Guild Wars 2/addons/overlay/Gw2-Simple-Addon-Loader.exe
+~/.steam/steam/steamapps/common/Guild Wars 2/addons/LOADER_public/Gw2-Simple-Addon-Loader.exe
 
 In this folder, create two files: dlls.txt and exes.txt 
 All DLL paths found in the dlls file will be loaded once the game is launched.
