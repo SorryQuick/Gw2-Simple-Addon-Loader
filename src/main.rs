@@ -21,6 +21,8 @@ mod logging;
 static EXE_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 fn main() {
+    let mut args = env::args().skip(1).collect::<Vec<String>>();
+
     let exe_path = EXE_DIR.get_or_init(|| {
         current_exe()
             .expect("Failed to get current exe path")
@@ -46,34 +48,35 @@ fn main() {
         gw2_path.to_str().unwrap()
     ));
 
-    for arg in env::args().skip(1).collect::<Vec<String>>() {
-        log(&arg);
-    }
-
     log("Launching Guild Wars 2...");
+
+    //Default arguments if they aren't present
+    for required in ["-ignorecoherentgpucrash", "-autologin"] {
+        if !args.iter().any(|arg| arg == required) {
+            args.push(required.into());
+        }
+    }
     let mut gw2_child = if env::var("USE_STEAM_LOGIN").unwrap_or("0".into()) == "1" {
         log("Game is running with Steam.");
         let app_id = "1284210";
+        if !args.iter().any(|arg| arg == "-provider") {
+            args.push("-provider".into());
+            args.push("Steam".into());
+        }
         Command::new(gw2_path.to_str().unwrap())
             .env("SteamAppId", app_id)
             .env("SteamGameId", app_id)
-            .args(&[
-                "-provider",
-                "Steam",
-                "-ignorecoherentgpucrash",
-                "-autologin",
-            ])
+            .args(&args)
             .spawn()
             .unwrap()
     } else {
         log("Game is NOT running with Steam.");
+        if !args.iter().any(|arg| arg == "-provider") {
+            args.push("-provider".into());
+            args.push("Portal".into());
+        }
         Command::new(gw2_path.to_str().unwrap())
-            .args(&[
-                "-provider",
-                "Portal",
-                "-ignorecoherentgpucrash",
-                "-autologin",
-            ])
+            .args(&args)
             .spawn()
             .unwrap()
     };
