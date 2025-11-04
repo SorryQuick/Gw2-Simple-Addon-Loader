@@ -21,6 +21,26 @@ mod logging;
 static EXE_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 fn main() {
+    std::panic::set_hook(Box::new(|panic_info| {
+        let payload = panic_info
+            .payload()
+            .downcast_ref::<&str>()
+            .copied()
+            .or_else(|| {
+                panic_info
+                    .payload()
+                    .downcast_ref::<String>()
+                    .map(|s| s.as_str())
+            })
+            .unwrap_or("Unknown panic");
+
+        let location = panic_info
+            .location()
+            .map(|l| format!("{}:{}", l.file(), l.line()))
+            .unwrap_or_else(|| "unknown location".to_string());
+        log(&format!("PANIC at {}: {}", location, payload));
+    }));
+
     let mut args = env::args().skip(1).collect::<Vec<String>>();
 
     let exe_path = EXE_DIR.get_or_init(|| {
